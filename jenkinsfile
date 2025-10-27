@@ -6,19 +6,6 @@ apiVersion: v1
 kind: Pod
 spec:
   containers:
-  - name: jnlp
-    image: jenkins/inbound-agent:latest
-    args:
-      - \${computer.jnlpmac}
-      - \${computer.name}
-    workingDir: /home/jenkins/agent
-    resources:
-      requests:
-        cpu: "100m"
-        memory: "128Mi"
-      limits:
-        cpu: "500m"
-        memory: "512Mi"
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
     command: ["sh", "-c"]
