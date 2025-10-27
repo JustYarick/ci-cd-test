@@ -1,37 +1,16 @@
 pipeline {
-    agent {
-        kubernetes {
-            label 'kaniko-agent'
-            yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:latest
-    tty: true
-    volumeMounts:
-      - name: workspace-volume
-        mountPath: /workspace
-  volumes:
-  - name: kaniko-secret
-    secret:
-      secretName: dockerhub-credentials
-  - name: workspace-volume
-    emptyDir: {}
-"""
-        }
-    }
+    agent any
+
     environment {
         DOCKER_IMAGE = "yaricks/ci-cd-test"
+        REGISTRY_CREDENTIALS = "dockerhub-credentials-id"
     }
+
     stages {
-        stage('Build and Push') {
+        stage('Build Docker Image') {
             steps {
                 container('kaniko') {
-                    sh """
-                    /kaniko/executor --context=/workspace --dockerfile=/workspace/Dockerfile --destination=${DOCKER_IMAGE} --verbosity=debug
-                    """
+                    sh "/kaniko/executor --context=/workspace --dockerfile=/workspace/Dockerfile --no-push"
                 }
             }
         }
