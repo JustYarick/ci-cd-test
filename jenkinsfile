@@ -1,27 +1,41 @@
 pipeline {
     agent {
-        docker { image 'beedemo/jenkins-dind-agent' }
+        kubernetes {
+            label 'kaniko-agent'
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command:
+      - cat
+    tty: true
+    volumeMounts:
+      - name: kaniko-secret
+        mountPath: /kaniko/.docker
+      - name: workspace-volume
+        mountPath: /workspace
+  volumes:
+  - name: kaniko-secret
+    secret:
+      secretName: dockerhub-credentials
+  - name: workspace-volume
+    emptyDir: {}
+"""
+        }
     }
-
     environment {
         DOCKER_IMAGE = "yaricks/ci-cd-test"
-        REGISTRY_CREDENTIALS = "dockerhub-credentials-id"
     }
-
     stages {
-        stage('Build Docker Image') {
+        stage('Build and Push') {
             steps {
-                script {
-                    docker.build("${DOCKER_IMAGE}")
-                }
-            }
-        }
-        stage('Push to Registry') {
-            steps {
-                script {
-                    docker.withRegistry('https://index.docker.io/v1/', "${REGISTRY_CREDENTIALS}") {
-                        docker.image("${DOCKER_IMAGE}").push()
-                    }
+                container('kaniko') {
+                    sh """
+                    /kaniko/executor --context=/workspace --dockerfile=/workspace/Dockerfile --destination=${DOCKER_IMAGE} --verbosity=debug
+                    """
                 }
             }
         }
