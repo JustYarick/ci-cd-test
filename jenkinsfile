@@ -1,11 +1,48 @@
 pipeline {
-    agent any
-
+    agent {
+        kubernetes {
+            yaml """
+apiVersion: v1
+kind: Pod
+spec:
+  containers:
+  - name: jnlp
+    image: jenkins/inbound-agent:latest
+    args:
+      - \${computer.jnlpmac}
+      - \${computer.name}
+    workingDir: /home/jenkins/agent
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "128Mi"
+      limits:
+        cpu: "500m"
+        memory: "512Mi"
+  - name: kaniko
+    image: gcr.io/kaniko-project/executor:debug
+    command: ["sh", "-c"]
+    args: ["while true; do sleep 30; done;"]
+    workingDir: /home/jenkins/agent
+    volumeMounts:
+      - mountPath: /workspace
+        name: workspace-volume
+    resources:
+      requests:
+        cpu: "100m"
+        memory: "256Mi"
+      limits:
+        cpu: "1000m"
+        memory: "1536Mi"
+  volumes:
+  - name: workspace-volume
+    emptyDir: {}
+"""
+        }
+    }
     environment {
         DOCKER_IMAGE = "yaricks/ci-cd-test"
-        REGISTRY_CREDENTIALS = "dockerhub-credentials-id"
     }
-
     stages {
         stage('Build Docker Image') {
             steps {
