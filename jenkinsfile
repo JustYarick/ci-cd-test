@@ -7,42 +7,19 @@ pipeline {
     }
     
     stages {
-        stage('Clone repository') {
+        stage('Checkout') {
             steps {
                 checkout scm
             }
         }
         
-        stage('Build image') {
+        stage('Build Docker Image') {
             steps {
                 container('docker') {
-                    script {
-                        app = docker.build("yaricks/ci-cd-test")
-                    }
-                }
-            }
-        }
-        
-        stage('Test image') {
-            steps {
-                container('docker') {
-                    script {
-                        app.inside {
-                            sh 'echo "Tests passed"'
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('Push image') {
-            steps {
-                container('docker') {
-                    script {
-                        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-                            app.push("${env.BUILD_NUMBER}")
-                        }
-                    }
+                    sh '''
+                        docker build -t yaricks/ci-cd-test:latest .
+                        docker tag yaricks/ci-cd-test:latest yaricks/ci-cd-test:${BUILD_NUMBER}
+                    '''
                 }
             }
         }

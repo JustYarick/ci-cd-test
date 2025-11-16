@@ -6,9 +6,6 @@ metadata:
 spec:
   serviceAccountName: default
   containers:
-    - name: jnlp
-      image: jenkins/agent:latest-jdk11
-    
     - name: docker
       image: docker:latest
       command:
@@ -19,12 +16,22 @@ spec:
       volumeMounts:
         - name: dockersock
           mountPath: /var/run/docker.sock
-        - name: workspace
-          mountPath: /home/jenkins/agent/workspace
+        - name: docker-config
+          mountPath: /root/.docker
+    
+    - name: kubectl
+      image: bitnami/kubectl:latest
+      command:
+        - cat
+      tty: true
+      volumeMounts:
+        - name: dockersock
+          mountPath: /var/run/docker.sock
   
   volumes:
     - name: dockersock
       hostPath:
         path: /var/run/docker.sock
-    - name: workspace
-      emptyDir: {}
+    - name: docker-config
+      hostPath:
+        path: /root/.docker
