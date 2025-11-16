@@ -1,27 +1,50 @@
-node {
-    def app
-
-    stage('Clone repository') {
-        checkout scm
-    }
-
-    stage('Build image') {
-  
-       app = docker.build("raj80dockerid/test")
-    }
-
-    stage('Test image') {
-  
-
-        app.inside {
-            sh 'echo "Tests passed"'
+pipeline {
+    agent {
+        kubernetes {
+            defaultContainer 'docker'
+            yamlFile 'agentpod.yaml'
         }
     }
-
-    stage('Push image') {
+    
+    stages {
+        stage('Clone repository') {
+            steps {
+                checkout scm
+            }
+        }
         
-        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
-            app.push("${env.BUILD_NUMBER}")
+        stage('Build image') {
+            steps {
+                container('docker') {
+                    script {
+                        app = docker.build("yaricks/ci-cd-test")
+                    }
+                }
+            }
+        }
+        
+        stage('Test image') {
+            steps {
+                container('docker') {
+                    script {
+                        app.inside {
+                            sh 'echo "Tests passed"'
+                        }
+                    }
+                }
+            }
+        }
+        
+        stage('Push image') {
+            steps {
+                container('docker') {
+                    script {
+                        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+                            app.push("${env.BUILD_NUMBER}")
+                        }
+                    }
+                }
+            }
         }
     }
 }
