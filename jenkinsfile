@@ -1,45 +1,27 @@
-pipeline {
-    agent {
-        kubernetes {
-            yaml """
-apiVersion: v1
-kind: Pod
-spec:
-  containers:
-  - name: kaniko
-    image: gcr.io/kaniko-project/executor:debug
-    command: ["sh", "-c"]
-    args: ["while true; do sleep 30; done;"]
-    workingDir: /home/jenkins/agent
-    volumeMounts:
-      - mountPath: /workspace
-        name: workspace-volume
-    resources:
-      requests:
-        cpu: "100m"
-        memory: "256Mi"
-      limits:
-        cpu: "1000m"
-        memory: "1536Mi"
-  volumes:
-  - name: workspace-volume
-    emptyDir: {}
-"""
+node {
+    def app
+
+    stage('Clone repository') {
+        checkout scm
+    }
+
+    stage('Build image') {
+  
+       app = docker.build("raj80dockerid/test")
+    }
+
+    stage('Test image') {
+  
+
+        app.inside {
+            sh 'echo "Tests passed"'
         }
     }
-    environment {
-        DOCKER_IMAGE = "yaricks/ci-cd-test"
-    }
-    stages {
-        stage('Build Docker Image') {
-            steps {
-                container('kaniko') {
-                    sh 'pwd'
-                    sh 'ls -la'
-                    sh 'ls -la /workspace'
-                    sh "/kaniko/executor --context=/home/jenkins/agent/workspace/ci-cd-github-test --dockerfile=/home/jenkins/agent/workspace/ci-cd-github-test/Dockerfile --no-push"
-                }
-            }
+
+    stage('Push image') {
+        
+        docker.withRegistry('https://registry.hub.docker.com', 'dockerhub') {
+            app.push("${env.BUILD_NUMBER}")
         }
     }
 }
