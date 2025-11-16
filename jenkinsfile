@@ -43,6 +43,13 @@ pipeline {
                 }
             }
         }
+
+        stage('Trigger ManifestUpdate') {
+            steps {
+                echo "Triggering 'updatemanifest' job with DOCKERTAG=${BUILD_NUMBER}"
+                build job: 'updatemanifest', parameters: [string(name: 'DOCKERTAG', value: "${BUILD_NUMBER}")]
+            }
+        }
     }
     
     post {
